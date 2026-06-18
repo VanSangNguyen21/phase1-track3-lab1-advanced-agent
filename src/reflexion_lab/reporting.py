@@ -96,9 +96,32 @@ def save_report(report: ReportPayload, out_dir: str | Path) -> tuple[Path, Path]
     json_path.write_text(json.dumps(report.model_dump(), indent=2), encoding="utf-8")
     
     s = report.summary
-    react = s.get("react", {})
-    reflexion = s.get("reflexion", {})
-    delta = s.get("delta_reflexion_minus_react", {})
+    agents = report.meta.get("agents", ["react", "reflexion", "reflexion_adaptive"])
+    
+    # Generate a dynamic markdown comparison table comparing all agents side-by-side
+    header_cols = ["Metric"] + [a.upper() for a in agents]
+    align_cols = ["---"] + ["---:"] * len(agents)
+    
+    rows = []
+    for metric_name, key in [
+        ("EM (Exact Match)", "em"), 
+        ("Avg attempts", "avg_attempts"), 
+        ("Avg token estimate", "avg_token_estimate"), 
+        ("Avg latency (ms)", "avg_latency_ms")
+    ]:
+        row = [metric_name]
+        for a in agents:
+            row.append(str(s.get(a, {}).get(key, 0)))
+        rows.append(row)
+        
+    table_lines = [
+        "|" + "|".join(header_cols) + "|",
+        "|" + "|".join(align_cols) + "|",
+    ]
+    for row in rows:
+        table_lines.append("|" + "|".join(row) + "|")
+        
+    summary_table = "\n".join(table_lines)
     ext_lines = "\n".join(f"- {item}" for item in report.extensions)
     
     md = f"""# Lab 16 Benchmark Report
@@ -109,13 +132,22 @@ def save_report(report: ReportPayload, out_dir: str | Path) -> tuple[Path, Path]
 - Records: {report.meta['num_records']}
 - Agents: {', '.join(report.meta['agents'])}
 
-## Summary
-| Metric | ReAct | Reflexion | Delta |
-|---|---:|---:|---:|
-| EM | {react.get('em', 0)} | {reflexion.get('em', 0)} | {delta.get('em_abs', 0)} |
-| Avg attempts | {react.get('avg_attempts', 0)} | {reflexion.get('avg_attempts', 0)} | {delta.get('attempts_abs', 0)} |
-| Avg token estimate | {react.get('avg_token_estimate', 0)} | {reflexion.get('avg_token_estimate', 0)} | {delta.get('tokens_abs', 0)} |
-| Avg latency (ms) | {react.get('avg_latency_ms', 0)} | {reflexion.get('avg_latency_ms', 0)} | {delta.get('latency_abs', 0)} |
+## Workflow Control Flow (Reflexion Loop)
+```mermaid
+graph TD
+    Start([Start: Question & Context]) --> Actor[Actor: Generate Answer]
+    Actor --> Eval[Evaluator: Grade Answer]
+    Eval --> Check{{Is Correct / Score == 1?}}
+    Check -->|Yes| Done([Success: Return Answer])
+    Check -->|No| Attempts{{Attempts < Max Attempts?}}
+    Attempts -->|No| Fail([Return Last Answer])
+    Attempts -->|Yes| Reflect[Reflector: Generate Strategy & Lesson]
+    Reflect --> UpdateMemory[Update Reflection Memory]
+    UpdateMemory --> Actor
+```
+
+## Agent Comparison Summary Table
+{summary_table}
 
 ## Failure modes
 ```json
