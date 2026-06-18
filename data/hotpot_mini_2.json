@@ -1,0 +1,34 @@
+[
+  {
+    "qid": "hp1",
+    "difficulty": "easy",
+    "question": "Which university did the author of The Hobbit teach at?",
+    "gold_answer": "Oxford University",
+    "context": [
+      {
+        "title": "J. R. R. Tolkien",
+        "text": "J. R. R. Tolkien wrote The Hobbit and was a professor at Oxford University."
+      },
+      {
+        "title": "Oxford University",
+        "text": "Oxford University is a collegiate research university in Oxford, England."
+      }
+    ]
+  },
+  {
+    "qid": "hp2",
+    "difficulty": "medium",
+    "question": "What river flows through the city where Ada Lovelace was born?",
+    "gold_answer": "River Thames",
+    "context": [
+      {
+        "title": "Ada Lovelace",
+        "text": "Ada Lovelace was born in London, England."
+      },
+      {
+        "title": "London",
+        "text": "London is crossed by the River Thames."
+      }
+    ]
+  }
+]
